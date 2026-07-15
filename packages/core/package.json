@@ -1,0 +1,32 @@
+{
+  "name": "@vigil/core",
+  "version": "0.1.0",
+  "description": "Core middleware engine, strategy interface, and types for Vigil authentication.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --external @node-rs/argon2",
+    "typecheck": "tsc --noEmit"
+  },
+  "optionalDependencies": {
+    "@node-rs/argon2": "^2.0.2"
+  },
+  "devDependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}
