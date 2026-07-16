@@ -14,6 +14,7 @@ export default defineConfig({
       "@vigil/core": pkg("./packages/core/src/index.ts"),
       "@vigil/strategy-local": pkg("./packages/strategy-local/src/index.ts"),
       "@vigil/strategy-jwt": pkg("./packages/strategy-jwt/src/index.ts"),
+      "@vigil/strategy-oauth2": pkg("./packages/strategy-oauth2/src/index.ts"),
       "@vigil/adapter-express": pkg("./packages/adapter-express/src/index.ts"),
       "@vigil/test": pkg("./packages/test/src/index.ts"),
     },

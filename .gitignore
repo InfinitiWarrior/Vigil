@@ -4,3 +4,6 @@ dist/
 .DS_Store
 coverage/
 .turbo/
+
+# Agent working-status notes — not project documentation, goes stale on purpose
+CLAUDE.md
