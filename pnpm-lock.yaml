@@ -151,6 +151,21 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/strategy-apikey:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      '@vigil/core':
+        specifier: workspace:*
+        version: link:../core
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(postcss@8.5.19)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/strategy-jwt:
     dependencies:
       jose:
@@ -185,11 +200,41 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/strategy-magic-link:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      '@vigil/core':
+        specifier: workspace:*
+        version: link:../core
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(postcss@8.5.19)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/strategy-oauth2:
     dependencies:
       jose:
         specifier: ^5.9.6
         version: 5.10.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.20.1
+      '@vigil/core':
+        specifier: workspace:*
+        version: link:../core
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(postcss@8.5.19)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
+  packages/strategy-totp:
     devDependencies:
       '@types/node':
         specifier: ^22.10.0
