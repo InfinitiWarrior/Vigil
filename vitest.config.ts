@@ -18,6 +18,8 @@ export default defineConfig({
       "@vigil/strategy-apikey": pkg("./packages/strategy-apikey/src/index.ts"),
       "@vigil/strategy-totp": pkg("./packages/strategy-totp/src/index.ts"),
       "@vigil/strategy-magic-link": pkg("./packages/strategy-magic-link/src/index.ts"),
+      "@vigil/strategy-webauthn": pkg("./packages/strategy-webauthn/src/index.ts"),
+      "@vigil/strategy-saml": pkg("./packages/strategy-saml/src/index.ts"),
       "@vigil/adapter-express": pkg("./packages/adapter-express/src/index.ts"),
       "@vigil/adapter-fastify": pkg("./packages/adapter-fastify/src/index.ts"),
       "@vigil/adapter-hono": pkg("./packages/adapter-hono/src/index.ts"),
