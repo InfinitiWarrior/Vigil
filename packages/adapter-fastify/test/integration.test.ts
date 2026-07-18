@@ -63,11 +63,9 @@ function buildApp() {
     async () => ({ ok: true }),
   );
 
-  app.get(
-    "/api/me",
-    { preHandler: toFastify(vigil.authenticate("jwt", { session: false })) },
-    async (request) => ({ user: request.user }),
-  );
+  app.get("/api/me", { preHandler: toFastify(vigil.authenticate("jwt", { session: false })) }, async (request) => ({
+    user: request.user,
+  }));
 
   app.post("/logout", { preHandler: toFastify(vigil.logout()) }, async () => ({ ok: true }));
 

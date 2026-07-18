@@ -15,9 +15,7 @@ export function mockStrategy<TUser>(
   };
 }
 
-export function mockUser<T extends Record<string, unknown>>(
-  overrides: T = {} as T,
-): { id: string; email: string } & T {
+export function mockUser<T extends Record<string, unknown>>(overrides: T = {} as T): { id: string; email: string } & T {
   return { id: "mock-user-1", email: "mock@example.com", ...overrides };
 }
 

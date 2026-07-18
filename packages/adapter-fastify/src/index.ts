@@ -10,8 +10,8 @@ declare module "fastify" {
 }
 
 function toVigilRequest<TUser>(request: FastifyRequest): VigilRequest<TUser> {
-  const cookies = (request as { cookies?: Record<string, string> }).cookies
-    ?? parseCookieHeader(request.headers.cookie);
+  const cookies =
+    (request as { cookies?: Record<string, string> }).cookies ?? parseCookieHeader(request.headers.cookie);
 
   return {
     method: request.method,
@@ -22,6 +22,7 @@ function toVigilRequest<TUser>(request: FastifyRequest): VigilRequest<TUser> {
     query: (request.query ?? {}) as VigilRequest<TUser>["query"],
     body: request.body,
     ip: request.ip,
+    secure: request.protocol === "https",
     user: request.user as TUser | undefined,
   };
 }

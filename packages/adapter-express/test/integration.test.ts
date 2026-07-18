@@ -94,9 +94,7 @@ describe("express adapter integration", () => {
   });
 
   it("rejects bad credentials with 401", async () => {
-    const res = await request(buildApp())
-      .post("/login")
-      .send({ email: "alice@example.com", password: "wrong" });
+    const res = await request(buildApp()).post("/login").send({ email: "alice@example.com", password: "wrong" });
     expect(res.status).toBe(401);
   });
 

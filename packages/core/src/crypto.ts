@@ -1,8 +1,4 @@
-import {
-  randomBytes,
-  createHmac,
-  timingSafeEqual as nodeTimingSafeEqual,
-} from "node:crypto";
+import { randomBytes, createHmac, timingSafeEqual as nodeTimingSafeEqual } from "node:crypto";
 
 /**
  * Argon2id is an optional dependency (`@node-rs/argon2`). The core engine

@@ -21,10 +21,15 @@ const DEFAULT_SESSION_COOKIE = "vigil.sid";
 const DEFAULT_CSRF_COOKIE = "vigil.csrf";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-function defaultCookieOptions(overrides?: Partial<CookieOptions>): CookieOptions {
+/** Defaults `secure` to whatever the adapter detected on the actual request
+ * (TLS, or a trusted `X-Forwarded-Proto: https`) when available, falling
+ * back to `NODE_ENV` only if the adapter didn't report it — this way cookies
+ * still get `Secure` correctly even if `NODE_ENV` isn't set to
+ * `"production"` in a production deployment (a common misconfiguration). */
+function defaultCookieOptions(req: VigilRequest<unknown>, overrides?: Partial<CookieOptions>): CookieOptions {
   return {
     httpOnly: true,
-    secure: process.env["NODE_ENV"] === "production",
+    secure: req.secure ?? process.env["NODE_ENV"] === "production",
     sameSite: "lax",
     path: "/",
     ...overrides,
@@ -54,14 +59,18 @@ export class Vigil<TUser = unknown> {
     return subject as TUser;
   }
 
-  private sessionCookieName(): string {
+  /** The session cookie's configured name (`session.cookie.name`, or the
+   * `"vigil.sid"` default) — public so adapters that read the cookie
+   * outside a normal request/response cycle (e.g. a Next.js Server
+   * Component via `next/headers`) know which cookie to look for. */
+  sessionCookieName(): string {
     if (this.config.session === false) return DEFAULT_SESSION_COOKIE;
     return this.config.session.cookie?.name ?? DEFAULT_SESSION_COOKIE;
   }
 
-  private sessionCookieOptions(): CookieOptions {
-    if (this.config.session === false) return defaultCookieOptions();
-    return defaultCookieOptions(this.config.session.cookie);
+  private sessionCookieOptions(req: VigilRequest<TUser>): CookieOptions {
+    if (this.config.session === false) return defaultCookieOptions(req);
+    return defaultCookieOptions(req, this.config.session.cookie);
   }
 
   private sessionMaxAge(): number | undefined {
@@ -70,7 +79,9 @@ export class Vigil<TUser = unknown> {
   }
 
   /** Loads `req.user` from the session cookie if one is present and no user
-   * has already been attached earlier in the pipeline (e.g. by `authenticate`). */
+   * has already been attached earlier in the pipeline (e.g. by `authenticate`).
+   * Renews the session's TTL (sliding expiration) unless `session.rolling`
+   * is explicitly `false`. */
   private async loadSessionUser(req: VigilRequest<TUser>): Promise<void> {
     if (req.user !== undefined && req.user !== null) return;
     const sessionConfig = this.config.session;
@@ -83,10 +94,53 @@ export class Vigil<TUser = unknown> {
     const session = await sessionConfig.store.get(sessionId);
     if (!session) return;
 
+    const maxAge = this.sessionMaxAge();
+    if ((sessionConfig.rolling ?? true) && maxAge && sessionConfig.store.touch) {
+      await sessionConfig.store.touch(sessionId, maxAge);
+    }
+
     const user = await this.deserialize(session.subject);
     req.sessionId = sessionId;
     req.session = session;
     req.user = user;
+  }
+
+  /** Lists the session IDs currently active for `user`. Requires a
+   * `SessionStore` that implements `listByUser()` (e.g. `RedisSessionStore`
+   * with a client that supports Redis sets). */
+  async listSessions(user: TUser): Promise<string[]> {
+    const sessionConfig = this.config.session;
+    if (sessionConfig === false) return [];
+    if (!sessionConfig.store.listByUser) {
+      throw new Error("Vigil: the configured SessionStore does not implement listByUser()");
+    }
+    return sessionConfig.store.listByUser(this.serialize(user));
+  }
+
+  /** Destroys every session belonging to `user` — "sign out everywhere."
+   * Requires a `SessionStore` that implements `destroyAllForUser()`. */
+  async revokeAllSessions(user: TUser): Promise<void> {
+    const sessionConfig = this.config.session;
+    if (sessionConfig === false) return;
+    if (!sessionConfig.store.destroyAllForUser) {
+      throw new Error("Vigil: the configured SessionStore does not implement destroyAllForUser()");
+    }
+    await sessionConfig.store.destroyAllForUser(this.serialize(user));
+  }
+
+  /** Resolves the user for a given session ID directly, without a
+   * VigilRequest/VigilResponse cycle — for anywhere that has a session ID
+   * but no HTTP request/response pair to run through `requireAuth()`, e.g.
+   * a Next.js Server Component reading the cookie via `next/headers`, a
+   * WebSocket upgrade handler, or building a GraphQL context. Returns
+   * `null` if there's no session config, the session doesn't exist, or it
+   * has expired. */
+  async getUserBySessionId(sessionId: string): Promise<TUser | null> {
+    const sessionConfig = this.config.session;
+    if (sessionConfig === false) return null;
+    const session = await sessionConfig.store.get(sessionId);
+    if (!session) return null;
+    return this.deserialize(session.subject);
   }
 
   private resolveStrategies(names: string | string[]): Strategy<TUser>[] {
@@ -120,7 +174,7 @@ export class Vigil<TUser = unknown> {
         } catch (err) {
           const reason = err instanceof Error ? err.message : "Strategy threw an unexpected error";
           await this.hooks.onFailure?.(reason, strategy.name, req);
-          next(new AuthError("STRATEGY_ERROR", reason));
+          next(new AuthError("STRATEGY_ERROR", "Authentication failed", undefined, reason));
           return;
         }
 
@@ -152,7 +206,8 @@ export class Vigil<TUser = unknown> {
         res.redirect(options.failureRedirect);
         return;
       }
-      next(new AuthError("UNAUTHENTICATED", failure.reason, failure.status));
+      const publicMessage = options.exposeFailureReason ? failure.reason : "Authentication failed";
+      next(new AuthError("UNAUTHENTICATED", publicMessage, failure.status, failure.reason));
     };
   }
 
@@ -173,7 +228,7 @@ export class Vigil<TUser = unknown> {
 
     await session.store.set(sessionId, data, maxAge);
     res.setCookie(this.sessionCookieName(), sessionId, {
-      ...this.sessionCookieOptions(),
+      ...this.sessionCookieOptions(req),
       maxAge,
     });
 
@@ -232,7 +287,7 @@ export class Vigil<TUser = unknown> {
       const sessionConfig = this.config.session;
       if (sessionConfig !== false && req.sessionId) {
         await sessionConfig.store.destroy(req.sessionId);
-        res.clearCookie(this.sessionCookieName(), this.sessionCookieOptions());
+        res.clearCookie(this.sessionCookieName(), this.sessionCookieOptions(req));
       }
 
       await this.hooks.onLogout?.(req.user ?? null, req);
@@ -258,7 +313,7 @@ export class Vigil<TUser = unknown> {
         if (!cookieToken) {
           res.setCookie(DEFAULT_CSRF_COOKIE, token, {
             httpOnly: false,
-            secure: process.env["NODE_ENV"] === "production",
+            secure: req.secure ?? process.env["NODE_ENV"] === "production",
             sameSite: "lax",
             path: "/",
           });
@@ -271,9 +326,7 @@ export class Vigil<TUser = unknown> {
       const headerToken = req.headers["x-csrf-token"];
       const submittedToken = Array.isArray(headerToken) ? headerToken[0] : headerToken;
       const bodyToken =
-        typeof req.body === "object" && req.body !== null
-          ? (req.body as Record<string, unknown>)["_csrf"]
-          : undefined;
+        typeof req.body === "object" && req.body !== null ? (req.body as Record<string, unknown>)["_csrf"] : undefined;
       const candidate = submittedToken ?? (typeof bodyToken === "string" ? bodyToken : undefined);
 
       if (!cookieToken || !candidate || !timingSafeEqual(cookieToken, candidate)) {
@@ -303,18 +356,13 @@ export class Vigil<TUser = unknown> {
     };
   }
 
-  private resolveRateLimitKey(
-    req: VigilRequest<TUser>,
-    keyBy: RateLimitOptions["keyBy"],
-  ): string {
+  private resolveRateLimitKey(req: VigilRequest<TUser>, keyBy: RateLimitOptions["keyBy"]): string {
     if (typeof keyBy === "function") return keyBy(req);
     if (keyBy === "ip" || keyBy === undefined) return req.ip ?? "unknown";
     if (keyBy.startsWith("body.")) {
       const field = keyBy.slice("body.".length);
       const value =
-        typeof req.body === "object" && req.body !== null
-          ? (req.body as Record<string, unknown>)[field]
-          : undefined;
+        typeof req.body === "object" && req.body !== null ? (req.body as Record<string, unknown>)[field] : undefined;
       return typeof value === "string" ? value : "unknown";
     }
     return "unknown";

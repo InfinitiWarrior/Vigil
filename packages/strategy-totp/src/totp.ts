@@ -77,17 +77,27 @@ export function generateTotpCode(secret: string, options: TotpOptions = {}): str
   return hotp(base32Decode(secret), counter, digits, algorithm);
 }
 
-export function verifyTotpCode(secret: string, code: string, options: TotpOptions = {}): boolean {
+/** Like `verifyTotpCode`, but returns the matched time-step index instead of
+ * a boolean — callers that need replay protection (RFC 6238 §5.2) persist
+ * this alongside the user's secret and reject any future code whose step is
+ * at or before the last one accepted. Returns `null` if `code` doesn't match
+ * any step in the window. */
+export function verifyTotpCodeStep(secret: string, code: string, options: TotpOptions = {}): number | null {
   const { digits, period, window, algorithm } = resolve(options);
-  if (code.length !== digits) return false;
+  if (code.length !== digits) return null;
 
   const secretBuffer = base32Decode(secret);
   const counter = BigInt(Math.floor(Date.now() / 1000 / period));
   const codeBuffer = Buffer.from(code);
 
   for (let drift = -window; drift <= window; drift++) {
-    const candidate = Buffer.from(hotp(secretBuffer, counter + BigInt(drift), digits, algorithm));
-    if (candidate.length === codeBuffer.length && timingSafeEqual(candidate, codeBuffer)) return true;
+    const step = counter + BigInt(drift);
+    const candidate = Buffer.from(hotp(secretBuffer, step, digits, algorithm));
+    if (candidate.length === codeBuffer.length && timingSafeEqual(candidate, codeBuffer)) return Number(step);
   }
-  return false;
+  return null;
+}
+
+export function verifyTotpCode(secret: string, code: string, options: TotpOptions = {}): boolean {
+  return verifyTotpCodeStep(secret, code, options) !== null;
 }

@@ -49,24 +49,34 @@ describe("TOTP primitives", () => {
 
 describe("TotpStrategy", () => {
   let secretStore: Map<string, string>;
+  let lastUsedSteps: Map<string, number>;
 
   beforeEach(() => {
     secretStore = new Map();
+    lastUsedSteps = new Map();
   });
 
   afterEach(() => {
     vi.useRealTimers();
   });
 
+  function fakeSecretStore() {
+    return {
+      get: async (userId: string) => secretStore.get(userId) ?? null,
+      save: async (userId: string, secret: string) => {
+        secretStore.set(userId, secret);
+      },
+      getLastUsedStep: async (userId: string) => lastUsedSteps.get(userId) ?? null,
+      setLastUsedStep: async (userId: string, step: number) => {
+        lastUsedSteps.set(userId, step);
+      },
+    };
+  }
+
   function makeStrategy() {
     return new TotpStrategy<{ id: string }>({
       issuer: "VigilTest",
-      secretStore: {
-        get: async (userId) => secretStore.get(userId) ?? null,
-        save: async (userId, secret) => {
-          secretStore.set(userId, secret);
-        },
-      },
+      secretStore: fakeSecretStore(),
       verify: async (userId) => ({ success: true, user: { id: userId } }),
     });
   }
@@ -147,12 +157,7 @@ describe("TotpStrategy", () => {
     const strategy = new TotpStrategy<{ id: string }>({
       issuer: "VigilTest",
       identify: (request) => (request.body as { userId?: string }).userId ?? null,
-      secretStore: {
-        get: async (userId) => secretStore.get(userId) ?? null,
-        save: async (userId, secret) => {
-          secretStore.set(userId, secret);
-        },
-      },
+      secretStore: fakeSecretStore(),
       verify: async (userId) => ({ success: true, user: { id: userId } }),
     });
 
@@ -166,5 +171,18 @@ describe("TotpStrategy", () => {
       body: { userId: "user-2", code },
     });
     expect(result).toEqual({ success: true, user: { id: "user-2" } });
+  });
+
+  it("rejects a valid code that's already been used (replay protection)", async () => {
+    const strategy = makeStrategy();
+    const secret = generateTotpSecret();
+    secretStore.set("user-1", secret);
+    const code = generateTotpCode(secret);
+
+    const first = await strategy.authenticate({ ...baseRequest, user: { id: "user-1" }, body: { code } });
+    expect(first).toEqual({ success: true, user: { id: "user-1" } });
+
+    const replay = await strategy.authenticate({ ...baseRequest, user: { id: "user-1" }, body: { code } });
+    expect(replay).toMatchObject({ success: false, reason: "Code already used", status: 401 });
   });
 });

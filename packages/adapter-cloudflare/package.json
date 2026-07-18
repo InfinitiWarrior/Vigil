@@ -1,0 +1,41 @@
+{
+  "name": "@vigil/adapter-cloudflare",
+  "version": "0.1.0",
+  "description": "Cloudflare Workers (Web Fetch API) adapter for Vigil.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@vigil/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260717.1",
+    "@types/node": "^22.10.0",
+    "@vigil/core": "workspace:*",
+    "@vigil/strategy-jwt": "workspace:*",
+    "@vigil/strategy-local": "workspace:*",
+    "jose": "^5.9.6",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
+}

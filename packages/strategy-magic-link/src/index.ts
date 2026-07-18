@@ -22,9 +22,8 @@ export interface MagicLinkStrategyOptions<TUser> {
 }
 
 function readField(request: VigilRequest, field: string): string | undefined {
-  const body = typeof request.body === "object" && request.body !== null
-    ? (request.body as Record<string, unknown>)
-    : {};
+  const body =
+    typeof request.body === "object" && request.body !== null ? (request.body as Record<string, unknown>) : {};
   const fromBody = body[field];
   if (typeof fromBody === "string") return fromBody;
 

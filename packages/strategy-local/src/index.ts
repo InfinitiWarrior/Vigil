@@ -22,9 +22,8 @@ export class LocalStrategy<TUser = unknown> implements Strategy<TUser> {
   }
 
   async authenticate(request: VigilRequest<TUser>): Promise<AuthResult<TUser>> {
-    const body = typeof request.body === "object" && request.body !== null
-      ? (request.body as Record<string, unknown>)
-      : {};
+    const body =
+      typeof request.body === "object" && request.body !== null ? (request.body as Record<string, unknown>) : {};
 
     const username = body[this.usernameField];
     const password = body[this.passwordField];

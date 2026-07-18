@@ -9,6 +9,10 @@ export interface VigilRequest<TUser = unknown> {
   query: Record<string, string | string[] | undefined>;
   body: unknown;
   ip?: string;
+  /** Whether the underlying connection is HTTPS (or terminated as HTTPS by a
+   * trusted proxy) — populated by the adapter. Used to default cookies'
+   * `Secure` attribute without relying solely on `NODE_ENV`. */
+  secure?: boolean;
   /** Mutable auth state populated by the pipeline as it runs. */
   user?: TUser | null;
   session?: SessionData | null;
@@ -72,6 +76,13 @@ export interface SessionStore {
   set(sessionId: string, data: SessionData, ttl?: number): Promise<void>;
   destroy(sessionId: string): Promise<void>;
   touch?(sessionId: string, ttl: number): Promise<void>;
+  /** Lists the session IDs currently active for a given subject (the
+   * serialized user identifier stored as `SessionData.subject`). Optional —
+   * only needed to support `vigil.listSessions()`. */
+  listByUser?(subject: unknown): Promise<string[]>;
+  /** Destroys every session belonging to a given subject — "sign out
+   * everywhere." Optional — only needed to support `vigil.revokeAllSessions()`. */
+  destroyAllForUser?(subject: unknown): Promise<void>;
 }
 
 export interface RateLimitStore {
@@ -82,6 +93,12 @@ export interface RateLimitStore {
 
 export interface SessionConfig {
   store: SessionStore;
+  /** Renew a session's TTL (via `store.touch()`) each time it's loaded by
+   * `requireAuth()`/`optionalAuth()`/`logout()`, so an active session doesn't
+   * expire mid-use. Defaults to `true`. Has no effect without both a
+   * `cookie.maxAge` and a store that implements `touch()`. Set to `false`
+   * for an absolute (non-sliding) session lifetime instead. */
+  rolling?: boolean;
   cookie?: {
     name?: string;
     maxAge?: number;
@@ -115,6 +132,16 @@ export interface AuthenticateOptions {
   failureRedirect?: string;
   session?: boolean;
   failFast?: boolean;
+  /** By default, a failed authentication's public error message is a
+   * generic "Authentication failed" — the specific reason a strategy's
+   * `verify()` callback returned (e.g. "User not found" vs. "Invalid
+   * password") is only attached to `AuthError.detail`, for hooks/logging,
+   * not sent to the client. That's deliberate: differing messages between
+   * "no such user" and "wrong password" is a classic user-enumeration leak
+   * (OWASP A07). Set this to `true` to expose the real reason as the
+   * error's public `.message` instead — e.g. for internal tools where
+   * enumeration isn't a concern. */
+  exposeFailureReason?: boolean;
   [key: string]: unknown;
 }
 

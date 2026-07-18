@@ -1,14 +1,12 @@
 import type { AuthResult, Strategy, VigilRequest } from "@vigil/core";
-import { buildOtpauthUrl, generateTotpSecret, verifyTotpCode, type TotpAlgorithm } from "./totp.js";
+import { buildOtpauthUrl, generateTotpSecret, verifyTotpCode, verifyTotpCodeStep, type TotpAlgorithm } from "./totp.js";
+import type { TotpSecretStore } from "./secret-store.js";
 
 export { base32Decode, base32Encode } from "./base32.js";
-export { buildOtpauthUrl, generateTotpCode, generateTotpSecret, verifyTotpCode } from "./totp.js";
+export { buildOtpauthUrl, generateTotpCode, generateTotpSecret, verifyTotpCode, verifyTotpCodeStep } from "./totp.js";
 export type { TotpAlgorithm, TotpOptions } from "./totp.js";
-
-export interface TotpSecretStore {
-  get(userId: string): Promise<string | null>;
-  save(userId: string, secret: string): Promise<void>;
-}
+export { MemoryTotpSecretStore } from "./secret-store.js";
+export type { TotpSecretStore } from "./secret-store.js";
 
 export interface TotpStrategyOptions<TUser> {
   issuer: string;
@@ -34,9 +32,8 @@ function defaultIdentify<TUser>(request: VigilRequest<TUser>): string | null {
 }
 
 function readCode(request: VigilRequest, field: string): string | undefined {
-  const body = typeof request.body === "object" && request.body !== null
-    ? (request.body as Record<string, unknown>)
-    : {};
+  const body =
+    typeof request.body === "object" && request.body !== null ? (request.body as Record<string, unknown>) : {};
   const value = body[field];
   return typeof value === "string" ? value : undefined;
 }
@@ -88,7 +85,19 @@ export class TotpStrategy<TUser = unknown> implements Strategy<TUser> {
     const secret = await this.options.secretStore.get(userId);
     if (!secret) return { success: false, reason: "TOTP not configured", status: 400 };
 
-    if (!this.verifySetup(secret, code)) return { success: false, reason: "Invalid code", status: 401 };
+    const step = verifyTotpCodeStep(secret, code, {
+      digits: this.options.digits,
+      period: this.options.period,
+      window: this.options.window,
+      algorithm: this.options.algorithm,
+    });
+    if (step === null) return { success: false, reason: "Invalid code", status: 401 };
+
+    const lastUsedStep = await this.options.secretStore.getLastUsedStep(userId);
+    if (lastUsedStep !== null && step <= lastUsedStep) {
+      return { success: false, reason: "Code already used", status: 401 };
+    }
+    await this.options.secretStore.setLastUsedStep(userId, step);
 
     return this.options.verify(userId);
   }

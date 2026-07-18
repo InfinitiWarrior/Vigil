@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createLocalJWKSet, exportJWK, exportPKCS8, generateKeyPair, SignJWT } from "jose";
-import { appleOAuth2, githubOAuth2 } from "@vigil/strategy-oauth2";
+import { appleOAuth2, discordOAuth2, githubOAuth2, gitlabOAuth2, microsoftOAuth2 } from "@vigil/strategy-oauth2";
 
 const baseRequest = {
   method: "GET",
@@ -131,5 +131,123 @@ describe("appleOAuth2", () => {
     const [headerB64] = clientSecretJwt.split(".");
     const header = JSON.parse(Buffer.from(headerB64!, "base64url").toString());
     expect(header).toMatchObject({ alg: "ES256", kid: "KEY7890" });
+  });
+});
+
+describe("microsoftOAuth2", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn(async (input: string | URL) => {
+      const url = input.toString();
+      if (url.includes("login.microsoftonline.com") && url.includes("/oauth2/v2.0/token")) {
+        return jsonResponse({ access_token: "ms-token", token_type: "Bearer" });
+      }
+      if (url === "https://graph.microsoft.com/oidc/userinfo") {
+        return jsonResponse({ sub: "ms-user-1", email: "user@contoso.com", name: "Contoso User" });
+      }
+      throw new Error(`Unexpected fetch to ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("scopes the authorize/token URLs to the given tenant", async () => {
+    const strategy = microsoftOAuth2({
+      clientId: "ms-client",
+      clientSecret: "ms-secret",
+      redirectUri: "https://app.example/callback",
+      tenant: "contoso.onmicrosoft.com",
+      verify: async (profile) => ({ success: true, user: { id: profile.sub, email: profile.email } }),
+    });
+
+    expect(strategy.name).toBe("microsoft");
+
+    const initiate = await strategy.authenticate({ ...baseRequest, query: {} });
+    if (!("redirect" in initiate)) throw new Error("expected a redirect result");
+    expect(initiate.redirect).toContain("login.microsoftonline.com/contoso.onmicrosoft.com/oauth2/v2.0/authorize");
+    const state = new URL(initiate.redirect).searchParams.get("state")!;
+
+    const result = await strategy.authenticate({ ...baseRequest, query: { code: "ms-code", state } });
+    expect(result).toEqual({ success: true, user: { id: "ms-user-1", email: "user@contoso.com" } });
+  });
+});
+
+describe("discordOAuth2", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn(async (input: string | URL) => {
+      const url = input.toString();
+      if (url === "https://discord.com/api/oauth2/token") {
+        return jsonResponse({ access_token: "discord-token", token_type: "Bearer" });
+      }
+      if (url === "https://discord.com/api/users/@me") {
+        return jsonResponse({ id: "999", username: "vigiluser", email: "user@example.com" });
+      }
+      throw new Error(`Unexpected fetch to ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("completes the authorization code flow", async () => {
+    const strategy = discordOAuth2({
+      clientId: "discord-client",
+      clientSecret: "discord-secret",
+      redirectUri: "https://app.example/callback",
+      verify: async (profile) => ({ success: true, user: { id: profile.id, username: profile.username } }),
+    });
+
+    expect(strategy.name).toBe("discord");
+
+    const initiate = await strategy.authenticate({ ...baseRequest, query: {} });
+    if (!("redirect" in initiate)) throw new Error("expected a redirect result");
+    const state = new URL(initiate.redirect).searchParams.get("state")!;
+
+    const result = await strategy.authenticate({ ...baseRequest, query: { code: "discord-code", state } });
+    expect(result).toEqual({ success: true, user: { id: "999", username: "vigiluser" } });
+  });
+});
+
+describe("gitlabOAuth2", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn(async (input: string | URL) => {
+      const url = input.toString();
+      if (url === "https://gitlab.example.com/oauth/token") {
+        return jsonResponse({ access_token: "gitlab-token", token_type: "Bearer" });
+      }
+      if (url === "https://gitlab.example.com/api/v4/user") {
+        return jsonResponse({ id: 7, username: "vigiluser", email: "user@example.com" });
+      }
+      throw new Error(`Unexpected fetch to ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("supports a self-hosted instance via baseUrl", async () => {
+    const strategy = gitlabOAuth2({
+      clientId: "gitlab-client",
+      clientSecret: "gitlab-secret",
+      redirectUri: "https://app.example/callback",
+      baseUrl: "https://gitlab.example.com/",
+      verify: async (profile) => ({ success: true, user: { id: profile.id, username: profile.username } }),
+    });
+
+    expect(strategy.name).toBe("gitlab");
+
+    const initiate = await strategy.authenticate({ ...baseRequest, query: {} });
+    if (!("redirect" in initiate)) throw new Error("expected a redirect result");
+    expect(initiate.redirect).toContain("https://gitlab.example.com/oauth/authorize");
+    const state = new URL(initiate.redirect).searchParams.get("state")!;
+
+    const result = await strategy.authenticate({ ...baseRequest, query: { code: "gitlab-code", state } });
+    expect(result).toEqual({ success: true, user: { id: 7, username: "vigiluser" } });
   });
 });

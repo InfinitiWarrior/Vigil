@@ -21,6 +21,7 @@ function toVigilRequest<TUser>(req: Request): VigilRequest<TUser> {
     query: req.query as VigilRequest<TUser>["query"],
     body: req.body,
     ip: req.ip,
+    secure: req.secure,
     user: req.user as TUser | undefined,
   };
 }

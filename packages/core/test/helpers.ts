@@ -1,4 +1,4 @@
-import type { VigilRequest, VigilResponse } from "@vigil/core";
+import type { CookieOptions, VigilRequest, VigilResponse } from "@vigil/core";
 
 export function fakeRequest<TUser = unknown>(overrides: Partial<VigilRequest<TUser>> = {}): VigilRequest<TUser> {
   return {
@@ -18,6 +18,7 @@ export interface FakeResponse extends VigilResponse {
   statusCode: number;
   headers: Record<string, string>;
   cookies: Record<string, string>;
+  cookieOptions: Record<string, CookieOptions | undefined>;
   cleared: string[];
   redirected?: { url: string; status: number };
   body?: unknown;
@@ -28,6 +29,7 @@ export function fakeResponse(): FakeResponse {
     statusCode: 200,
     headers: {},
     cookies: {},
+    cookieOptions: {},
     cleared: [],
     status(code) {
       this.statusCode = code;
@@ -35,8 +37,9 @@ export function fakeResponse(): FakeResponse {
     setHeader(name, value) {
       this.headers[name] = value;
     },
-    setCookie(name, value) {
+    setCookie(name, value, options) {
       this.cookies[name] = value;
+      this.cookieOptions[name] = options;
     },
     clearCookie(name) {
       this.cleared.push(name);

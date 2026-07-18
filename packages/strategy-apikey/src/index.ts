@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { timingSafeEqual } from "@vigil/core";
 import type { AuthResult, Strategy, VigilRequest } from "@vigil/core";
 
 export type ApiKeyExtractFrom = "header" | "query" | ((request: VigilRequest) => string | undefined);
@@ -17,6 +18,15 @@ export interface ApiKeyStrategyOptions<TUser> {
  * (rather than bcrypt/argon2) is the right tool: store this, never the raw key. */
 export function hashApiKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
+}
+
+/** Hashes `providedKey` and compares it against `storedHash` in constant
+ * time. A hex digest comparison isn't as exploitable as comparing raw
+ * secrets, but it's still best practice (this is exactly what
+ * `crypto.timingSafeEqual` exists for) — use this in `verify()` instead of
+ * `hashApiKey(providedKey) === storedHash`. */
+export function compareApiKeyHash(providedKey: string, storedHash: string): boolean {
+  return timingSafeEqual(hashApiKey(providedKey), storedHash);
 }
 
 function extractKey(request: VigilRequest, options: ApiKeyStrategyOptions<unknown>): string | undefined {

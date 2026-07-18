@@ -43,9 +43,8 @@ function readParam(request: VigilRequest, key: string): string | undefined {
   if (typeof fromQuery === "string") return fromQuery;
   if (Array.isArray(fromQuery) && fromQuery.length > 0) return fromQuery[0];
 
-  const body = typeof request.body === "object" && request.body !== null
-    ? (request.body as Record<string, unknown>)
-    : {};
+  const body =
+    typeof request.body === "object" && request.body !== null ? (request.body as Record<string, unknown>) : {};
   const fromBody = body[key];
   return typeof fromBody === "string" ? fromBody : undefined;
 }
@@ -164,11 +163,12 @@ export class OAuth2Strategy<TUser = unknown> implements Strategy<TUser> {
     const raw = (await response.json()) as Record<string, unknown>;
 
     if (!response.ok) {
-      const description = typeof raw["error_description"] === "string"
-        ? raw["error_description"]
-        : typeof raw["error"] === "string"
-          ? raw["error"]
-          : `Token exchange failed with status ${response.status}`;
+      const description =
+        typeof raw["error_description"] === "string"
+          ? raw["error_description"]
+          : typeof raw["error"] === "string"
+            ? raw["error"]
+            : `Token exchange failed with status ${response.status}`;
       throw new Error(description);
     }
 

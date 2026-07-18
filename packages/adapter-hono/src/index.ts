@@ -41,6 +41,7 @@ async function toVigilRequest<TUser>(c: Context): Promise<VigilRequest<TUser>> {
     query: c.req.query(),
     body: await readBody(c),
     ip: c.req.header("x-forwarded-for"),
+    secure: c.req.header("x-forwarded-proto") === "https" || url.protocol === "https:",
     user: c.get("user") as TUser | undefined,
   };
 }

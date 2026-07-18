@@ -15,9 +15,7 @@ export type SamlStrategyOptions<TUser> = Omit<SamlConfig, "idpCert" | "callbackU
 };
 
 function readBody(request: VigilRequest): Record<string, unknown> {
-  return typeof request.body === "object" && request.body !== null
-    ? (request.body as Record<string, unknown>)
-    : {};
+  return typeof request.body === "object" && request.body !== null ? (request.body as Record<string, unknown>) : {};
 }
 
 function firstHeaderValue(value: string | string[] | undefined): string | undefined {

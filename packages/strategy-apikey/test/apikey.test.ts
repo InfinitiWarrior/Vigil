@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ApiKeyStrategy, hashApiKey } from "@vigil/strategy-apikey";
+import { ApiKeyStrategy, compareApiKeyHash, hashApiKey } from "@vigil/strategy-apikey";
 
 const baseRequest = {
   method: "GET",
@@ -94,5 +94,17 @@ describe("hashApiKey", () => {
 
   it("produces different hashes for different keys", () => {
     expect(hashApiKey("key-a")).not.toBe(hashApiKey("key-b"));
+  });
+});
+
+describe("compareApiKeyHash", () => {
+  it("matches the correct key against its stored hash", () => {
+    const storedHash = hashApiKey("vgl_secret123");
+    expect(compareApiKeyHash("vgl_secret123", storedHash)).toBe(true);
+  });
+
+  it("rejects an incorrect key", () => {
+    const storedHash = hashApiKey("vgl_secret123");
+    expect(compareApiKeyHash("wrong-key", storedHash)).toBe(false);
   });
 });

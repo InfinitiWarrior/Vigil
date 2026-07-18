@@ -1,0 +1,25 @@
+{
+  "name": "vigil-example-express-basic",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Minimal Express app showing session login, JWT bearer auth, and RBAC with Vigil.",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@vigil/adapter-express": "workspace:*",
+    "@vigil/core": "workspace:*",
+    "@vigil/strategy-jwt": "workspace:*",
+    "@vigil/strategy-local": "workspace:*",
+    "express": "^5.0.1",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

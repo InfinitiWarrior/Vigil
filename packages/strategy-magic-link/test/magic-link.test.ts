@@ -35,9 +35,7 @@ describe("MagicLinkStrategy", () => {
   it("throws when the identifier field is missing", async () => {
     const sendLink = vi.fn(async () => {});
     const strategy = makeStrategy(sendLink);
-    await expect(
-      strategy.sendToken({ ...baseRequest, method: "POST", query: {}, body: {} }),
-    ).rejects.toThrow(/email/);
+    await expect(strategy.sendToken({ ...baseRequest, method: "POST", query: {}, body: {} })).rejects.toThrow(/email/);
     expect(sendLink).not.toHaveBeenCalled();
   });
 

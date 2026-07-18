@@ -1,4 +1,9 @@
 packages:
   - "packages/*"
+  - "examples/*"
 allowBuilds:
   esbuild: true
+  # Next.js's optional native image-optimization dependency — unneeded here
+  # (this adapter only uses next/server and next/headers), so its postinstall
+  # build script is deliberately left unapproved rather than granted for no reason.
+  sharp: false

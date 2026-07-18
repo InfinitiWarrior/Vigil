@@ -1,7 +1,15 @@
 export { createVigil, Vigil } from "./vigil.js";
 export { AuthError, isAuthError } from "./errors.js";
 export type { AuthErrorCode } from "./errors.js";
-export { crypto, hashPassword, verifyPassword, generateToken, generateApiKey, hmac, timingSafeEqual } from "./crypto.js";
+export {
+  crypto,
+  hashPassword,
+  verifyPassword,
+  generateToken,
+  generateApiKey,
+  hmac,
+  timingSafeEqual,
+} from "./crypto.js";
 export {
   MemorySessionStore,
   createMemorySessionStore,

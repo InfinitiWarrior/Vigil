@@ -7,11 +7,32 @@ import type { RateLimitStore, SessionData, SessionStore } from "./types.js";
  */
 export class MemorySessionStore implements SessionStore {
   private readonly data = new Map<string, { value: SessionData; expiresAt: number | null }>();
+  private readonly byUser = new Map<string, Set<string>>();
+
+  private userKey(subject: unknown): string {
+    return JSON.stringify(subject);
+  }
+
+  private addToIndex(sessionId: string, subject: unknown): void {
+    const key = this.userKey(subject);
+    const ids = this.byUser.get(key) ?? new Set();
+    ids.add(sessionId);
+    this.byUser.set(key, ids);
+  }
+
+  private removeFromIndex(sessionId: string, subject: unknown): void {
+    const key = this.userKey(subject);
+    const ids = this.byUser.get(key);
+    if (!ids) return;
+    ids.delete(sessionId);
+    if (ids.size === 0) this.byUser.delete(key);
+  }
 
   async get(sessionId: string): Promise<SessionData | null> {
     const entry = this.data.get(sessionId);
     if (!entry) return null;
     if (entry.expiresAt !== null && entry.expiresAt < Date.now()) {
+      this.removeFromIndex(sessionId, entry.value.subject);
       this.data.delete(sessionId);
       return null;
     }
@@ -19,19 +40,37 @@ export class MemorySessionStore implements SessionStore {
   }
 
   async set(sessionId: string, value: SessionData, ttl?: number): Promise<void> {
+    const existing = this.data.get(sessionId);
+    if (existing) this.removeFromIndex(sessionId, existing.value.subject);
     this.data.set(sessionId, {
       value,
       expiresAt: ttl ? Date.now() + ttl * 1000 : null,
     });
+    this.addToIndex(sessionId, value.subject);
   }
 
   async destroy(sessionId: string): Promise<void> {
+    const entry = this.data.get(sessionId);
+    if (entry) this.removeFromIndex(sessionId, entry.value.subject);
     this.data.delete(sessionId);
   }
 
   async touch(sessionId: string, ttl: number): Promise<void> {
     const entry = this.data.get(sessionId);
     if (entry) entry.expiresAt = Date.now() + ttl * 1000;
+  }
+
+  async listByUser(subject: unknown): Promise<string[]> {
+    return [...(this.byUser.get(this.userKey(subject)) ?? [])];
+  }
+
+  async destroyAllForUser(subject: unknown): Promise<void> {
+    const ids = this.byUser.get(this.userKey(subject));
+    if (!ids) return;
+    for (const sessionId of [...ids]) {
+      this.data.delete(sessionId);
+    }
+    this.byUser.delete(this.userKey(subject));
   }
 }
 

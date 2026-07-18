@@ -55,9 +55,7 @@ function buildApp() {
 
   app.get("/admin", toHono(vigil.requireAuth()), toHono(vigil.authorize("admin")), (c) => c.json({ ok: true }));
 
-  app.get("/api/me", toHono(vigil.authenticate("jwt", { session: false })), (c) =>
-    c.json({ user: c.get("user") }),
-  );
+  app.get("/api/me", toHono(vigil.authenticate("jwt", { session: false })), (c) => c.json({ user: c.get("user") }));
 
   app.post("/logout", toHono(vigil.logout()), (c) => c.json({ ok: true }));
 
