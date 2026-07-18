@@ -35,7 +35,7 @@
     "@vigil/strategy-jwt": "workspace:*",
     "@types/node": "^22.10.0",
     "hono": "^4.6.14",
-    "jose": "^5.9.6",
+    "jose": "^6.2.3",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
   }
