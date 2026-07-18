@@ -34,7 +34,7 @@
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
     "@vigil/strategy-local": "workspace:*",
-    "jose": "^5.9.6",
+    "jose": "^6.2.3",
     "supertest": "^7.2.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
