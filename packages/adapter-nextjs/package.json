@@ -30,13 +30,13 @@
     "next": "^14.0.0 || ^15.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.1.1",
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
     "@vigil/strategy-local": "workspace:*",
     "jose": "^5.9.6",
-    "next": "^15.5.20",
+    "next": "^16.2.10",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }
