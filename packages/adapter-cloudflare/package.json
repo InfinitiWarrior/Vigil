@@ -29,13 +29,13 @@
     "@vigil/core": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20260717.1",
-    "@types/node": "^22.10.0",
+    "@cloudflare/workers-types": "^5.20260718.1",
+    "@types/node": "^26.1.1",
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
     "@vigil/strategy-local": "workspace:*",
     "jose": "^5.9.6",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }
