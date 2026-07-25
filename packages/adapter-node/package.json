@@ -29,7 +29,7 @@
     "@vigil/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.1.1",
     "@types/supertest": "^7.2.1",
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
@@ -37,6 +37,6 @@
     "jose": "^5.9.6",
     "supertest": "^7.2.2",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }

@@ -30,12 +30,12 @@
   },
   "devDependencies": {
     "@types/bun": "^1.3.14",
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.1.1",
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
     "@vigil/strategy-local": "workspace:*",
     "jose": "^5.9.6",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }
