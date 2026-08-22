@@ -36,7 +36,7 @@ jobs:
       # Once that PR is merged (no changesets left): publishes the bumped
       # packages to npm instead. See changesets/action's README for details.
       - name: Create Release Pull Request or Publish to npm
-        uses: changesets/action@v1
+        uses: changesets/action@v2
         with:
           publish: pnpm changeset publish
         env:
