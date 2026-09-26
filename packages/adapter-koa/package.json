@@ -32,16 +32,16 @@
   "devDependencies": {
     "@koa/router": "^15.7.0",
     "@types/koa": "^3.0.3",
-    "@types/koa__router": "^12.0.5",
-    "@types/node": "^22.10.0",
-    "@types/supertest": "^6.0.3",
+    "@types/koa__router": "^15.0.0",
+    "@types/node": "^26.6.2",
+    "@types/supertest": "^7.2.1",
     "@vigil/core": "workspace:*",
     "@vigil/strategy-jwt": "workspace:*",
     "@vigil/strategy-local": "workspace:*",
     "jose": "^5.9.6",
     "koa": "^3.2.1",
-    "supertest": "^7.2.2",
+    "supertest": "^7.3.0",
     "tsup": "^8.3.5",
-    "typescript": "^5.7.2"
+    "typescript": "^7.0.2"
   }
 }
